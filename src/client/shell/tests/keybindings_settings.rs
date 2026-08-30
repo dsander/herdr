@@ -241,6 +241,51 @@ detach = "prefix+x"
 }
 
 #[test]
+fn prefix_prefix_dispatches_bound_action_instead_of_passthrough() {
+    let config = toml::from_str::<Config>(
+        r#"
+[keys]
+prefix = "ctrl+b"
+detach = "prefix+ctrl+b"
+"#,
+    )
+    .expect("configured keybinds");
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&config));
+    state.set_snapshot(Box::new(snapshot()));
+    state.set_pane_surface(surface());
+
+    assert!(state.handle_input_bytes(&[0x02]).requests.is_empty());
+    let second = state.handle_input_bytes(&[0x02]);
+    assert!(second.detach);
+    assert!(second.requests.is_empty(), "prefix must not reach the pane");
+}
+
+#[test]
+fn prefix_plus_prefix_letter_dispatches_bound_action() {
+    let config = toml::from_str::<Config>(
+        r#"
+[keys]
+prefix = "ctrl+b"
+detach = "prefix+b"
+"#,
+    )
+    .expect("configured keybinds");
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&config));
+    state.set_snapshot(Box::new(snapshot()));
+    state.set_pane_surface(surface());
+
+    assert!(state.handle_input_bytes(&[0x02]).requests.is_empty());
+    assert!(state.handle_input_bytes(b"b").detach);
+
+    // Without a binding on the prefix key itself, the double prefix still
+    // passes a literal prefix through to the pane.
+    assert!(state.handle_input_bytes(&[0x02]).requests.is_empty());
+    let passthrough = state.handle_input_bytes(&[0x02]);
+    assert!(!passthrough.detach);
+    assert_eq!(passthrough.requests.len(), 1);
+}
+
+#[test]
 fn prefix_endpoint_action_uses_public_api_with_stable_ids() {
     let mut config = Config::default();
     config.ui.prompt_new_tab_name = false;

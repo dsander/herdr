@@ -584,7 +584,12 @@ impl ClientShellState {
                 } else {
                     ClientShellMode::Terminal
                 };
-                if self.config.keybinds.matches_prefix(key) {
+                // The prefix pressed twice sends a literal prefix key, unless the user
+                // bound an action to it.
+                if self.config.keybinds.matches_prefix(key)
+                    && crate::input::resolve_prefix_binding(&self.config.keybinds.keybinds, key)
+                        .is_none()
+                {
                     self.mode = return_mode;
                     outcome.repaint = true;
                     return self.focused_pane_id().map(ClientInputTarget::Pane);

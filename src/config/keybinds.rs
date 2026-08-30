@@ -1084,16 +1084,19 @@ fn reject_binding(
     source: BindingSource,
 ) -> bool {
     if binding.trigger.is_prefix() && registry.prefix_rhs_is_reserved(binding.trigger.combo()) {
-        if source == BindingSource::Default && registry.prefix_source == BindingSource::User {
+        // A user binding on the prefix key displaces the literal-prefix
+        // passthrough, the way tmux `bind C-b <action>` displaces `send-prefix`.
+        if source != BindingSource::User {
+            if registry.prefix_source != BindingSource::User {
+                let diag = format!(
+                    "reserved keybinding: {field} = {:?} uses keys.prefix as the prefix-mode key; pressing the prefix twice sends a literal prefix key, so this binding is disabled",
+                    binding.label
+                );
+                warn!(message = %diag, "config diagnostic");
+                diagnostics.push(diag);
+            }
             return true;
         }
-        let diag = format!(
-            "reserved keybinding: {field} = {:?} uses keys.prefix as the prefix-mode key; pressing the prefix twice sends a literal prefix key, so this binding is disabled",
-            binding.label
-        );
-        warn!(message = %diag, "config diagnostic");
-        diagnostics.push(diag);
-        return true;
     }
 
     if let Some(first_binding) = registry.conflict(binding) {
@@ -1866,15 +1869,40 @@ close_tab = "X"
     }
 
     #[test]
-    fn prefix_rhs_equal_to_configured_prefix_is_rejected() {
+    fn user_prefix_rhs_equal_to_configured_prefix_is_kept() {
         let config: Config = toml::from_str(
             r#"
 [keys]
-prefix = "ctrl+a"
-help = "prefix+ctrl+a"
+prefix = "ctrl+b"
+help = "prefix+ctrl+b"
 "#,
         )
         .unwrap();
+        let diagnostics = config.collect_diagnostics();
+        assert!(config
+            .keybinds()
+            .help
+            .matches_prefix_key(&TerminalKey::new(KeyCode::Char('b'), KeyModifiers::CONTROL)));
+        assert!(!diagnostics
+            .iter()
+            .any(|diag| diag.contains("reserved keybinding")));
+
+        let config: Config = toml::from_str(
+            r#"
+[keys]
+prefix = "ctrl+b"
+help = "prefix+ctrl+g"
+"#,
+        )
+        .unwrap();
+        assert!(!config.keybinds().help.bindings.is_empty());
+    }
+
+    #[test]
+    fn default_prefix_rhs_equal_to_configured_prefix_is_still_rejected() {
+        let mut config = Config::default();
+        config.keys.help = BindingConfig::one("prefix+ctrl+b");
+
         let diagnostics = config.collect_diagnostics();
         assert!(config.keybinds().help.bindings.is_empty());
         assert!(diagnostics.iter().any(|diag| {
@@ -1882,16 +1910,29 @@ help = "prefix+ctrl+a"
                 && diag.contains("keys.help")
                 && diag.contains("keys.prefix")
         }));
+    }
 
+    #[test]
+    fn prefix_rhs_may_bind_the_prefix_letter_with_and_without_its_modifier() {
         let config: Config = toml::from_str(
             r#"
 [keys]
-prefix = "ctrl+a"
-help = "prefix+ctrl+b"
+prefix = "ctrl+b"
+last_pane = ["prefix+b", "prefix+ctrl+b"]
 "#,
         )
         .unwrap();
-        assert!(!config.keybinds().help.bindings.is_empty());
+        let keybinds = config.keybinds();
+        assert!(!config
+            .collect_diagnostics()
+            .iter()
+            .any(|diag| diag.contains("reserved keybinding")));
+        assert!(keybinds
+            .last_pane
+            .matches_prefix_key(&TerminalKey::new(KeyCode::Char('b'), KeyModifiers::empty())));
+        assert!(keybinds
+            .last_pane
+            .matches_prefix_key(&TerminalKey::new(KeyCode::Char('b'), KeyModifiers::CONTROL)));
     }
 
     #[test]
@@ -1919,8 +1960,8 @@ help = "prefix+?"
             help.matches_prefix_key(&TerminalKey::new(KeyCode::Char('?'), KeyModifiers::empty()))
         );
 
-        // Every prefix key is reserved as a prefix-mode right-hand side.
-        let reserved: Config = toml::from_str(
+        // A user binding may use any prefix key as its prefix-mode right-hand side.
+        let bound: Config = toml::from_str(
             r#"
 [keys]
 prefix = ["ctrl+space", "ctrl+s"]
@@ -1928,8 +1969,11 @@ help = "prefix+ctrl+s"
 "#,
         )
         .unwrap();
-        assert!(reserved.keybinds().help.bindings.is_empty());
-        assert!(reserved
+        assert!(bound
+            .keybinds()
+            .help
+            .matches_prefix_key(&TerminalKey::new(KeyCode::Char('s'), KeyModifiers::CONTROL)));
+        assert!(!bound
             .collect_diagnostics()
             .iter()
             .any(|diag| diag.contains("reserved keybinding")));
@@ -2101,7 +2145,7 @@ navigate_workspace_down = "ctrl+a"
     }
 
     #[test]
-    fn custom_command_prefix_rhs_equal_to_configured_prefix_is_rejected() {
+    fn custom_command_prefix_rhs_equal_to_configured_prefix_is_kept() {
         let config: Config = toml::from_str(
             r#"
 [keys]
@@ -2109,15 +2153,15 @@ prefix = "ctrl+b"
 
 [[keys.command]]
 key = "prefix+ctrl+b"
-command = "echo no"
+command = "echo yes"
 "#,
         )
         .unwrap();
         let diagnostics = config.collect_diagnostics();
-        assert!(config.keybinds().custom_commands.is_empty());
-        assert!(diagnostics.iter().any(|diag| {
-            diag.contains("reserved keybinding") && diag.contains("keys.command[0].key")
-        }));
+        assert_eq!(config.keybinds().custom_commands.len(), 1);
+        assert!(!diagnostics
+            .iter()
+            .any(|diag| diag.contains("reserved keybinding")));
     }
 
     #[test]

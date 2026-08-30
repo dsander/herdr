@@ -180,6 +180,8 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # cycle_pane_next = "prefix+tab"
 # cycle_pane_previous = "prefix+shift+tab"
 # last_pane = ""          # optional, unset by default; bind e.g. "prefix+tab" for global back-and-forth
+# Binding the prefix key itself, e.g. last_pane = "prefix+ctrl+b", replaces the
+# default "prefix twice sends a literal prefix key" passthrough.
 # split_vertical = "prefix+v"
 # split_horizontal = "prefix+minus"
 # close_pane = "prefix+x"
