@@ -5312,6 +5312,81 @@ last_pane = "prefix+tab"
         assert_eq!(app.state.workspaces[1].focused_pane_id(), Some(second_root));
     }
 
+    #[test]
+    fn route_client_input_prefix_prefix_dispatches_bound_action() {
+        let config: Config = toml::from_str(
+            r#"
+[keys]
+prefix = "ctrl+b"
+last_pane = "prefix+ctrl+b"
+"#,
+        )
+        .unwrap();
+        let mut app = test_app();
+        let mut first = Workspace::test_new("one");
+        let first_second_tab = first.test_add_tab(Some("logs"));
+        let first_second_root = first.tabs[first_second_tab].root_pane;
+        let second = Workspace::test_new("two");
+        let second_root = second.tabs[0].root_pane;
+        app.state.workspaces = vec![first, second];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.keybinds = config.keybinds();
+        let (prefix_code, prefix_mods) = config.prefix_key();
+        app.state.prefix_code = prefix_code;
+        app.state.prefix_mods = prefix_mods;
+        app.state.mode = Mode::Terminal;
+        app.state.switch_workspace_tab(0, first_second_tab);
+        app.state.switch_workspace_tab(1, 0);
+
+        app.route_client_input(vec![0x02, 0x02]);
+
+        assert_eq!(app.state.mode, Mode::Terminal);
+        assert_eq!(app.state.active, Some(0));
+        assert_eq!(
+            app.state.workspaces[0].focused_pane_id(),
+            Some(first_second_root)
+        );
+
+        app.route_client_input(vec![0x02, 0x02]);
+
+        assert_eq!(app.state.active, Some(1));
+        assert_eq!(app.state.workspaces[1].focused_pane_id(), Some(second_root));
+    }
+
+    #[test]
+    fn route_client_input_prefix_plus_prefix_letter_dispatches_bound_action() {
+        let config: Config = toml::from_str(
+            r#"
+[keys]
+prefix = "ctrl+b"
+last_pane = "prefix+b"
+"#,
+        )
+        .unwrap();
+        let mut app = test_app();
+        let mut first = Workspace::test_new("one");
+        let first_second_tab = first.test_add_tab(Some("logs"));
+        let second = Workspace::test_new("two");
+        let second_root = second.tabs[0].root_pane;
+        app.state.workspaces = vec![first, second];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.keybinds = config.keybinds();
+        let (prefix_code, prefix_mods) = config.prefix_key();
+        app.state.prefix_code = prefix_code;
+        app.state.prefix_mods = prefix_mods;
+        app.state.mode = Mode::Terminal;
+        app.state.switch_workspace_tab(0, first_second_tab);
+        app.state.switch_workspace_tab(1, 0);
+
+        app.route_client_input(vec![0x02, b'b']);
+        app.route_client_input(vec![0x02, b'b']);
+
+        assert_eq!(app.state.active, Some(1));
+        assert_eq!(app.state.workspaces[1].focused_pane_id(), Some(second_root));
+    }
+
     #[tokio::test]
     async fn route_client_input_double_prefix_passes_prefix_through_to_focused_pane() {
         let mut app = test_app();

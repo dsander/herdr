@@ -65,7 +65,9 @@ impl App {
             return;
         }
 
-        if self.state.is_prefix_key(&raw_key) {
+        // The prefix pressed twice sends a literal prefix key, unless the user
+        // bound an action to it.
+        if self.state.is_prefix_key(&raw_key) && !has_prefix_binding(&self.state, &raw_key) {
             if self.state.copy_mode_pane_is_focused() {
                 self.state.cancel_copy_mode(&self.terminal_runtimes);
             }
@@ -1519,6 +1521,14 @@ fn action_for_key(
 ) -> Option<NavigateAction> {
     non_indexed_action_for_key(state, &key, dispatch)
         .or_else(|| indexed_navigation_action(state, &key, dispatch))
+}
+
+// Whether any prefix-mode binding claims this key, including the prefix key
+// itself when the user bound an action to it.
+fn has_prefix_binding(state: &AppState, key: &TerminalKey) -> bool {
+    non_indexed_action_for_key(state, key, BindingDispatch::Prefix).is_some()
+        || command_for_key(state, key, BindingDispatch::Prefix).is_some()
+        || indexed_navigation_action(state, key, BindingDispatch::Prefix).is_some()
 }
 
 fn non_indexed_action_for_key(
