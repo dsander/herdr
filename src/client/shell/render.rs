@@ -37,8 +37,11 @@ pub(super) fn render_mode_bar(
     update_available: bool,
     keybinds: &LiveKeybindConfig,
     palette: &Palette,
+    show_prefix_mode_bar: bool,
 ) -> Option<Rect> {
-    if (mode == ClientShellMode::Terminal && endpoint_error.is_none()) || pane_area.is_empty() {
+    let hidden_mode = mode == ClientShellMode::Terminal
+        || (mode == ClientShellMode::Prefix && !show_prefix_mode_bar);
+    if (hidden_mode && endpoint_error.is_none()) || pane_area.is_empty() {
         return None;
     }
 

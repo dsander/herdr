@@ -134,6 +134,7 @@ impl ClientShellState {
             false,
             &self.config.keybinds,
             &self.config.palette,
+            self.config.show_prefix_mode_bar,
         );
         if let Some(notice) = &self.visible_endpoint_notice {
             self.hits.notification_toast = endpoint_notices::render_notice(
@@ -330,6 +331,7 @@ impl ClientShellState {
                 snapshot.update_available.is_some(),
                 &self.config.keybinds,
                 &self.config.palette,
+                self.config.show_prefix_mode_bar,
             )
         };
         if mode_bar == Some(layout.tab_bar) {
