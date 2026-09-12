@@ -1000,6 +1000,12 @@
           "description": "Hide the tab row when the workspace has one tab."
         },
         {
+          "key": "ui.show_prefix_mode_bar",
+          "type": "boolean",
+          "default": "true",
+          "description": "Show the Prefix mode bar with key hints at the bottom of the pane area while prefix mode is active. Prefix bindings keep working when it is hidden."
+        },
+        {
           "key": "ui.tab_bar_position",
           "type": "enum",
           "default": "\"top\"",

@@ -312,6 +312,10 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # New tabs can still be created with the configured keybinding.
 # hide_tab_bar_when_single_tab = false
 
+# Show the Prefix mode bar at the bottom while prefix mode is active.
+# Prefix bindings keep working with the bar hidden.
+# show_prefix_mode_bar = true
+
 # Desktop tab row placement: "top" or "bottom".
 # tab_bar_position = "top"
 

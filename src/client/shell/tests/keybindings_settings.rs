@@ -241,6 +241,33 @@ detach = "prefix+x"
 }
 
 #[test]
+fn prefix_mode_bar_can_be_hidden() {
+    let config = toml::from_str::<Config>(
+        r#"
+[ui]
+show_prefix_mode_bar = false
+"#,
+    )
+    .expect("ui config");
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&config));
+    state.set_snapshot(Box::new(snapshot()));
+    state.set_pane_surface(surface());
+
+    let prefix = state.handle_input_bytes(&[0x02]);
+    assert!(prefix.requests.is_empty());
+    let frame = state.compose(106, 20).expect("prefix frame");
+    let text = frame
+        .cells
+        .iter()
+        .map(|cell| cell.symbol.as_str())
+        .collect::<String>();
+    assert!(!text.contains("PREFIX"), "frame: {text:?}");
+
+    // Prefix bindings still work with the mode bar hidden.
+    assert!(state.handle_input_bytes(b"q").detach);
+}
+
+#[test]
 fn prefix_prefix_dispatches_bound_action_instead_of_passthrough() {
     let config = toml::from_str::<Config>(
         r#"

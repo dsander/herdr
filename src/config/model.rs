@@ -982,6 +982,8 @@ pub struct UiConfig {
     pub show_agent_labels_on_pane_borders: bool,
     /// Hide the tab row when the workspace has one tab. Default: false.
     pub hide_tab_bar_when_single_tab: bool,
+    /// Show the Prefix mode bar while prefix mode is active. Default: true.
+    pub show_prefix_mode_bar: bool,
     /// Desktop tab row placement. Default: top.
     pub tab_bar_position: TabBarPositionConfig,
     /// Ordered entries shown at the right edge of the desktop tab row. Empty by default.
@@ -1216,6 +1218,7 @@ impl Default for UiConfig {
             pane_gaps: true,
             show_agent_labels_on_pane_borders: false,
             hide_tab_bar_when_single_tab: false,
+            show_prefix_mode_bar: true,
             tab_bar_position: TabBarPositionConfig::Top,
             tab_bar_right: Vec::new(),
             tab_bar_right_separator: " ".into(),
@@ -1521,6 +1524,7 @@ status_indicators = "symbols"
         assert!(default_config.ui.pane_gaps);
         assert!(!default_config.ui.show_agent_labels_on_pane_borders);
         assert!(!default_config.ui.hide_tab_bar_when_single_tab);
+        assert!(default_config.ui.show_prefix_mode_bar);
         assert_eq!(
             default_config.ui.tab_bar_position,
             TabBarPositionConfig::Top
@@ -1536,6 +1540,7 @@ pane_scrollbars = false
 pane_gaps = true
 show_agent_labels_on_pane_borders = true
 hide_tab_bar_when_single_tab = true
+show_prefix_mode_bar = false
 tab_bar_position = "bottom"
 tab_bar_right = [
   { type = "zoom" },
@@ -1553,6 +1558,7 @@ tab_bar_right_separator = " · "
         assert!(config.ui.pane_gaps);
         assert!(config.ui.show_agent_labels_on_pane_borders);
         assert!(config.ui.hide_tab_bar_when_single_tab);
+        assert!(!config.ui.show_prefix_mode_bar);
         assert_eq!(config.ui.tab_bar_position, TabBarPositionConfig::Bottom);
         assert_eq!(config.ui.tab_bar_right.len(), 5);
         assert!(matches!(
