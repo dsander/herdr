@@ -176,10 +176,10 @@ Pressing the prefix twice sends a literal prefix key to the focused pane. Bindin
 
 ```toml
 [keys]
-last_pane = "prefix+ctrl+b"
+last_tab = "prefix+ctrl+b"
 ```
 
-With that binding, `ctrl+b` `ctrl+b` switches to the last pane and no longer sends `ctrl+b` to the pane. Leave the binding out to keep the passthrough.
+With that binding, `ctrl+b` `ctrl+b` toggles between the current and the previously focused tab, like GNU Screen's "other window", and no longer sends `ctrl+b` to the pane. `last_tab` remembers tabs across workspaces, and moving focus between panes inside a tab does not replace the remembered tab. Use `last_pane` instead to toggle between the last two focused panes. Leave the binding out to keep the passthrough.
 
 If you have old custom keybindings and want the new defaults, run `herdr config reset-keys`. Herdr backs up `config.toml`, removes `[keys]` and `[[keys.command]]`, and uses built-in v2 defaults after restart or `herdr server reload-config`.
 
