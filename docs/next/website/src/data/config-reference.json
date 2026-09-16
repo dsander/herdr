@@ -776,6 +776,12 @@
           "description": "Focus the last focused pane across workspaces and tabs. Unset by default."
         },
         {
+          "key": "keys.last_tab",
+          "type": "keybinding",
+          "default": "unset",
+          "description": "Focus the previously focused tab, including tabs in other workspaces. Pane focus changes within a tab do not replace the remembered tab. Unset by default."
+        },
+        {
           "key": "keys.split_vertical",
           "type": "keybinding",
           "default": "\"prefix+v\"",

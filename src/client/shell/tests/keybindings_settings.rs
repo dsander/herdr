@@ -268,6 +268,73 @@ show_prefix_mode_bar = false
 }
 
 #[test]
+fn last_tab_toggles_previous_tab_across_workspaces_ignoring_pane_focus() {
+    let config = toml::from_str::<Config>(
+        r#"
+[keys]
+prefix = "ctrl+b"
+last_tab = "prefix+ctrl+b"
+"#,
+    )
+    .expect("configured keybinds");
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&config));
+    let mut initial = snapshot();
+    let mut other_tab = initial.tabs[0].clone();
+    other_tab.tab_id = "tab_2".into();
+    other_tab.workspace_id = "ws_2".into();
+    initial.tabs.push(other_tab);
+    state.set_snapshot(Box::new(initial.clone()));
+
+    let last_tab = |state: &mut ClientShellState| {
+        let mut outcome = ClientShellInput::default();
+        state.record_binding(
+            crate::input::KeybindMatch::Action(crate::input::KeybindAction::LastTab),
+            &mut outcome,
+        );
+        outcome.actions
+    };
+    let actions = last_tab(&mut state);
+    assert!(
+        !actions
+            .iter()
+            .any(|action| matches!(action, ClientShellAction::Endpoint { .. })),
+        "no tab history yet: {actions:?}"
+    );
+
+    let mut moved = initial;
+    moved.revision = 2;
+    moved.focused_workspace_id = Some("ws_2".into());
+    moved.focused_tab_id = Some("tab_2".into());
+    moved.focused_pane_id = Some("pane_2".into());
+    state.set_snapshot(Box::new(moved.clone()));
+
+    // A pane focus change inside the current tab keeps the remembered tab.
+    let mut pane_moved = moved;
+    pane_moved.revision = 3;
+    pane_moved.focused_pane_id = Some("pane_3".into());
+    state.set_snapshot(Box::new(pane_moved));
+
+    let actions = last_tab(&mut state);
+    let [ClientShellAction::Endpoint { request, .. }] = &actions[..] else {
+        panic!("last tab should use endpoint API: {actions:?}");
+    };
+    assert!(matches!(
+        &request.method,
+        crate::api::schema::Method::TabFocus(target) if target.tab_id == "tab_1"
+    ));
+
+    // The configured double prefix dispatches last_tab instead of the passthrough.
+    assert!(state.handle_input_bytes(&[0x02]).requests.is_empty());
+    let double = state.handle_input_bytes(&[0x02]);
+    assert!(double.requests.is_empty(), "prefix must not reach the pane");
+    assert!(matches!(
+        &double.actions[..],
+        [ClientShellAction::Endpoint { request, .. }]
+            if matches!(&request.method, crate::api::schema::Method::TabFocus(target) if target.tab_id == "tab_1")
+    ));
+}
+
+#[test]
 fn prefix_prefix_dispatches_bound_action_instead_of_passthrough() {
     let config = toml::from_str::<Config>(
         r#"

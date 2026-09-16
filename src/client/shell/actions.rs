@@ -1088,6 +1088,17 @@ impl ClientShellState {
                     pane_id: pane_id.clone(),
                 }))
             }
+            KeybindAction::LastTab => {
+                let tab_id = self.previous_tab_id.as_ref()?;
+                if Some(tab_id.as_str()) == focused_tab.as_deref()
+                    || !snapshot.tabs.iter().any(|tab| &tab.tab_id == tab_id)
+                {
+                    return None;
+                }
+                Some(Method::TabFocus(TabTarget {
+                    tab_id: tab_id.clone(),
+                }))
+            }
             KeybindAction::Zoom => Some(Method::PaneZoom(PaneZoomParams {
                 pane_id: focused_pane,
                 mode: PaneZoomMode::Toggle,
