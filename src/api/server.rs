@@ -1192,7 +1192,7 @@ mod tests {
         let directory = unique_test_path("agent-lease");
         fs::create_dir(&directory).unwrap();
         let agent = directory.join("upstream");
-        let _agent = UnixListener::bind(&agent).unwrap();
+        let _agent = crate::platform::ssh_agent::tests::FakeAgent::bind(&agent, 1);
         let stable = directory.join("stable");
         let registry =
             crate::platform::ssh_agent::SshAgentRegistry::new(stable.clone(), None).unwrap();
